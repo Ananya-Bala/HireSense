@@ -1,0 +1,7 @@
+endee==0.1.16
+fastapi==0.135.0
+pdfplumber==0.11.9
+sentence_transformers==5.2.3
+uvicorn
+python-multipart
+jinja2

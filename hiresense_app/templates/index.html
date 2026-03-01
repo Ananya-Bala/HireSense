@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Resume Screening Engine</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ─── Design Tokens ─────────────────────────────────────── */
+:root {
+  --bg:           #dde1e7;
+  --surface:      #dde1e7;
+  --raised-sm:     4px  4px  10px #b8bec7, -4px  -4px  10px #ffffff;
+  --raised-md:     8px  8px  20px #b8bec7, -8px  -8px  20px #ffffff;
+  --raised-lg:    14px 14px  34px #b2b8c2,-14px -14px  34px #ffffff;
+  --inset-sm:  inset 3px  3px  8px #b8bec7, inset -3px  -3px  8px #ffffff;
+  --inset-md:  inset 5px  5px 12px #b8bec7, inset -5px  -5px 12px #ffffff;
+  --accent:       #4f6ef7;
+  --accent-b:     #9c6efa;
+  --accent-glow:  rgba(79,110,247,.18);
+  --green:        #22c55e;
+  --red:          #ef4444;
+  --tx1:          #1e2535;
+  --tx2:          #5a6478;
+  --tx3:          #9aa3b5;
+  --radius-card:  26px;
+  --radius-el:    15px;
+  --radius-chip:  50px;
+  --font-body:    'Outfit', sans-serif;
+  --font-display: 'Playfair Display', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 52px 20px 80px;
+  color: var(--tx1);
+}
+
+/* ─── Page Header ────────────────────────────────────────── */
+.page-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: riseIn .65s cubic-bezier(.22,1,.36,1) both;
+}
+
+.logo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  box-shadow: var(--raised-sm);
+  padding: 8px 18px 8px 10px;
+  border-radius: 50px;
+  margin-bottom: 22px;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-b));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 3px 3px 8px rgba(79,110,247,.35), -2px -2px 6px rgba(255,255,255,.6);
+}
+
+.logo-icon svg { width:18px; height:18px; }
+
+.logo-pill .pill-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 700;
+  color: var(--tx1);
+  letter-spacing: -.5px;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.page-header p {
+  font-size: 15px;
+  color: var(--tx3);
+  font-weight: 400;
+}
+
+/* ─── Main Card ──────────────────────────────────────────── */
+.card {
+  width: 100%;
+  max-width: 660px;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: 38px 36px;
+  box-shadow: var(--raised-lg);
+  animation: riseIn .65s cubic-bezier(.22,1,.36,1) .08s both;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c4c9d4 40%, #c4c9d4 60%, transparent);
+  margin: 32px 0;
+}
+
+/* ─── Form Labels ────────────────────────────────────────── */
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  margin-bottom: 10px;
+}
+
+.form-label .licon {
+  width: 22px; height: 22px;
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: var(--raised-sm);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.form-label .licon svg { width:11px; height:11px; opacity:.55; }
+
+/* ─── Select ─────────────────────────────────────────────── */
+.select-wrap {
+  position: relative;
+  margin-bottom: 26px;
+}
+
+.select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 18px; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--tx3);
+  pointer-events: none;
+}
+
+select {
+  width: 100%;
+  padding: 15px 44px 15px 18px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tx1);
+  border: none;
+  outline: none;
+  border-radius: var(--radius-el);
+  background: var(--surface);
+  box-shadow: var(--inset-md);
+  appearance: none;
+  cursor: pointer;
+  transition: box-shadow .2s;
+}
+
+select:focus {
+  box-shadow: var(--inset-md), 0 0 0 2px var(--accent-glow);
+}
+
+/* ─── Upload Zone ────────────────────────────────────────── */
+.upload-zone {
+  position: relative;
+  border-radius: var(--radius-el);
+  background: var(--surface);
+  box-shadow: var(--inset-md);
+  padding: 30px 20px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 26px;
+  transition: box-shadow .25s;
+  overflow: hidden;
+}
+
+.upload-zone:hover {
+  box-shadow: inset 6px 6px 14px #b0b6c0, inset -6px -6px 14px #ffffff;
+}
+
+.upload-zone.drag-over {
+  box-shadow: inset 6px 6px 14px #b0b6c0, inset -6px -6px 14px #ffffff, 0 0 0 2px var(--accent);
+}
+
+.upload-zone input {
+  position: absolute;
+  inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+
+.upload-icon-wrap {
+  width: 48px; height: 48px;
+  margin: 0 auto 14px;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--raised-sm);
+  display: flex; align-items: center; justify-content: center;
+  transition: box-shadow .2s;
+}
+
+.upload-zone:hover .upload-icon-wrap {
+  box-shadow: 5px 5px 12px #b0b6c0, -5px -5px 12px #ffffff;
+}
+
+.upload-icon-wrap svg { width:22px; height:22px; }
+
+.upload-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tx1);
+  margin-bottom: 5px;
+  transition: color .2s;
+}
+
+.upload-sub {
+  font-size: 12px;
+  color: var(--tx3);
+}
+
+.upload-zone.has-file .upload-title { color: var(--accent); }
+
+/* ─── Submit Button ──────────────────────────────────────── */
+.btn-submit {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius-el);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-b));
+  box-shadow: 6px 6px 16px rgba(79,110,247,.32), -2px -2px 8px rgba(255,255,255,.5), inset 0 1px 1px rgba(255,255,255,.25);
+  transition: transform .2s, box-shadow .2s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 8px 10px 22px rgba(79,110,247,.4), -2px -2px 8px rgba(255,255,255,.5), inset 0 1px 1px rgba(255,255,255,.25);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 3px 3px 10px rgba(79,110,247,.25), -1px -1px 5px rgba(255,255,255,.4);
+}
+
+.btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-spinner {
+  display: none;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* ─── Error Box ──────────────────────────────────────────── */
+.error-box {
+  margin-top: 14px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--inset-sm), 0 0 0 1px rgba(239,68,68,.25);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--red);
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-box svg { width:14px; height:14px; flex-shrink:0; }
+
+/* ─── Result Section ─────────────────────────────────────── */
+.result-card { display: none; }
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.result-header h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tx1);
+}
+
+.result-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-b));
+  padding: 4px 12px;
+  border-radius: 50px;
+  box-shadow: 2px 3px 8px rgba(79,110,247,.3);
+}
+
+/* ─── Score Panel ────────────────────────────────────────── */
+.score-panel {
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: var(--raised-md);
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.score-ring-wrap {
+  position: relative;
+  width: 96px; height: 96px;
+  flex-shrink: 0;
+}
+
+.score-ring-wrap svg {
+  transform: rotate(-90deg);
+  width: 96px; height: 96px;
+}
+
+.ring-bg {
+  fill: none;
+  stroke: #c8cdd6;
+  stroke-width: 7;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: url(#grad);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 251;
+  stroke-dashoffset: 251;
+  transition: stroke-dashoffset 1.1s cubic-bezier(.34,1.56,.64,1);
+}
+
+.score-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-num .num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tx1);
+  line-height: 1;
+}
+
+.score-num .lbl {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.score-meta { flex: 1; min-width: 0; }
+
+.score-meta .fit {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tx1);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-meta .role-name {
+  font-size: 12px;
+  color: var(--tx3);
+  margin-bottom: 12px;
+}
+
+.conf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 13px;
+  border-radius: 50px;
+  background: var(--surface);
+  box-shadow: var(--raised-sm);
+  color: var(--tx2);
+}
+
+.conf-badge .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--tx3);
+}
+
+.conf-badge.high .dot   { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
+.conf-badge.high        { color: #15803d; }
+.conf-badge.medium .dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,.5); }
+.conf-badge.medium      { color: #b45309; }
+.conf-badge.low .dot    { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,.5); }
+.conf-badge.low         { color: #b91c1c; }
+
+/* ─── Skill Coverage ─────────────────────────────────────── */
+.coverage-section { margin-bottom: 20px; }
+
+.coverage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.coverage-header .clabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.coverage-header .cpct {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tx1);
+}
+
+.skill-track {
+  height: 11px;
+  border-radius: 50px;
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+  overflow: hidden;
+}
+
+.skill-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 50px;
+  background: linear-gradient(to right, var(--accent), var(--accent-b));
+  transition: width 1.1s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 0 10px rgba(79,110,247,.4);
+}
+
+/* ─── Recommendation ─────────────────────────────────────── */
+.rec-row {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px 17px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(79,110,247,.04), rgba(156,110,250,.03));
+  box-shadow: var(--raised-sm);
+  margin-bottom: 20px;
+}
+
+.rec-icon-box {
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-b));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 3px 4px 10px rgba(79,110,247,.35);
+}
+
+.rec-icon-box svg { width:16px; height:16px; }
+
+.rec-inner .rlabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+
+.rec-inner .rtext {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx1);
+  line-height: 1.55;
+}
+
+/* ─── Skills Grid ────────────────────────────────────────── */
+.skills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.skills-panel {
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: var(--inset-md);
+  padding: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 13px;
+}
+
+.panel-header .pdot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.panel-header.green-h .pdot { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
+.panel-header.slate-h .pdot { background: #94a3b8;       box-shadow: 0 0 6px rgba(148,163,184,.4); }
+
+.panel-header h4 {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.panel-header.green-h h4 { color: #15803d; }
+.panel-header.slate-h h4 { color: #475569; }
+
+.skill-cat {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tx3);
+  margin: 8px 0 5px;
+}
+
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: var(--radius-chip);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  background: var(--surface);
+  cursor: default;
+  transition: box-shadow .2s, transform .15s;
+}
+
+.chip:hover { transform: translateY(-1px); }
+
+.chip.green {
+  color: #15803d;
+  box-shadow: 3px 3px 7px #b2b8c2, -3px -3px 7px #ffffff, inset 0 0 0 1px rgba(34,197,94,.22);
+}
+
+.chip.green:hover {
+  box-shadow: 4px 4px 9px #b0b6c0, -4px -4px 9px #ffffff, inset 0 0 0 1px rgba(34,197,94,.38);
+}
+
+.chip.gray {
+  color: #475569;
+  box-shadow: 3px 3px 7px #b2b8c2, -3px -3px 7px #ffffff, inset 0 0 0 1px rgba(148,163,184,.22);
+}
+
+.chip.gray:hover {
+  box-shadow: 4px 4px 9px #b0b6c0, -4px -4px 9px #ffffff, inset 0 0 0 1px rgba(148,163,184,.38);
+}
+
+/* ─── Analysis Box ───────────────────────────────────────── */
+.analysis-box {
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: var(--inset-md);
+  padding: 18px 20px;
+}
+
+.analysis-box .alabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 9px;
+}
+
+.analysis-box p {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--tx2);
+  line-height: 1.75;
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes riseIn {
+  from { opacity:0; transform: translateY(22px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+  .card { padding: 26px 20px; }
+  .skills-grid { grid-template-columns: 1fr; }
+  .score-panel { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ── Page Header ────────────────────────────────────────── -->
+<header class="page-header">
+  <div class="logo-pill">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+      </svg>
+    </div>
+    <span class="pill-label">AI Hiring Suite</span>
+  </div>
+  <h1>HireSense</h1>
+  <p>Upload a résumé and get an instant AI-powered candidate evaluation</p>
+</header>
+
+<!-- ── Main Card ──────────────────────────────────────────── -->
+<div class="card">
+
+  <form id="resumeForm">
+
+    <!-- Role Select -->
+    <div class="form-label">
+      <div class="licon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/>
+        </svg>
+      </div>
+      Target Role
+    </div>
+    <div class="select-wrap">
+      <select id="roleSelect"></select>
+    </div>
+
+    <!-- File Upload -->
+    <div class="form-label">
+      <div class="licon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      Resume Document
+    </div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="resumeFile" accept=".pdf" required>
+      <div class="upload-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="uploadGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f6ef7"/>
+              <stop offset="100%" stop-color="#9c6efa"/>
+            </linearGradient>
+          </defs>
+          <path stroke="url(#uploadGrad)" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline stroke="url(#uploadGrad)" points="17 8 12 3 7 8"/>
+          <line stroke="url(#uploadGrad)" x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="upload-title" id="uploadTitle">Drop your PDF here</div>
+      <div class="upload-sub" id="uploadSub">or click to browse · PDF only</div>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" id="submitBtn" class="btn-submit">
+      <div class="btn-spinner" id="spinner"></div>
+      <span id="btnText">Evaluate Resume</span>
+    </button>
+
+    <!-- Error -->
+    <div id="errorBox" class="error-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="errorMsg"></span>
+    </div>
+
+  </form>
+
+  <!-- ── Result ─────────────────────────────────────────── -->
+  <div id="resultCard" class="result-card">
+
+    <div class="divider"></div>
+
+    <div class="result-header">
+      <h2>Evaluation Report</h2>
+      <span class="result-tag">Complete</span>
+    </div>
+
+    <!-- Score + Fit -->
+    <div class="score-panel">
+      <div class="score-ring-wrap">
+        <svg viewBox="0 0 96 96">
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f6ef7"/>
+              <stop offset="100%" stop-color="#9c6efa"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="48" cy="48" r="40"/>
+          <circle class="ring-fill" id="scoreRing" cx="48" cy="48" r="40"/>
+        </svg>
+        <div class="score-num">
+          <span class="num" id="scoreNum">0%</span>
+          <span class="lbl">Match</span>
+        </div>
+      </div>
+      <div class="score-meta">
+        <div class="fit" id="fitLevel">—</div>
+        <div class="role-name" id="roleDisplay">—</div>
+        <div class="conf-badge" id="confidenceBadge">
+          <span class="dot"></span>
+          <span id="confidenceText">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skill Coverage -->
+    <div class="coverage-section">
+      <div class="coverage-header">
+        <span class="clabel">Skill Coverage</span>
+        <span class="cpct" id="skillPct">0%</span>
+      </div>
+      <div class="skill-track">
+        <div id="skillFill" class="skill-fill"></div>
+      </div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="rec-row" id="recRow">
+      <div class="rec-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="rec-inner">
+        <div class="rlabel">Recommendation</div>
+        <div class="rtext" id="recText">—</div>
+      </div>
+    </div>
+
+    <!-- Skills Grid -->
+    <div class="skills-grid">
+      <div class="skills-panel">
+        <div class="panel-header green-h">
+          <span class="pdot"></span>
+          <h4>Matched Skills</h4>
+        </div>
+        <div id="matchedSkills"></div>
+      </div>
+      <div class="skills-panel">
+        <div class="panel-header slate-h">
+          <span class="pdot"></span>
+          <h4>Skill Gaps</h4>
+        </div>
+        <div id="missingSkills"></div>
+      </div>
+    </div>
+
+    <!-- Analysis -->
+    <div class="analysis-box">
+      <div class="alabel">Analysis Summary</div>
+      <p id="analysisText">—</p>
+    </div>
+
+  </div>
+
+</div><!-- /card -->
+
+<!-- ─── All backend JS — zero changes ────────────────────── -->
+<script>
+/* upload UX (visual only) */
+const uploadZone  = document.getElementById('uploadZone');
+const fileInput   = document.getElementById('resumeFile');
+const uploadTitle = document.getElementById('uploadTitle');
+const uploadSub   = document.getElementById('uploadSub');
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) {
+    uploadZone.classList.add('has-file');
+    uploadTitle.textContent = fileInput.files[0].name;
+    uploadSub.textContent   = (fileInput.files[0].size / 1024).toFixed(1) + ' KB · PDF';
+  }
+});
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) {
+    fileInput.files = e.dataTransfer.files;
+    uploadZone.classList.add('has-file');
+    uploadTitle.textContent = e.dataTransfer.files[0].name;
+    uploadSub.textContent   = (e.dataTransfer.files[0].size / 1024).toFixed(1) + ' KB · PDF';
+  }
+});
+
+/* ── load roles ─── BACKEND (unchanged) ─────────────────── */
+const roleSelect = document.getElementById("roleSelect");
+
+async function loadRoles() {
+  const res  = await fetch("/roles");
+  const data = await res.json();
+  roleSelect.innerHTML = "<option disabled selected>Select role</option>";
+  data.available_roles.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r; opt.textContent = r;
+    roleSelect.appendChild(opt);
+  });
+}
+loadRoles();
+
+/* ── evaluate ─── BACKEND (unchanged) ───────────────────── */
+document.getElementById("resumeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const errorBox = document.getElementById("errorBox");
+  const errorMsg = document.getElementById("errorMsg");
+  errorBox.style.display = "none";
+
+  const role = roleSelect.value;
+  const file = document.getElementById("resumeFile").files[0];
+  if (!role || !file) return;
+
+  const btn     = document.getElementById("submitBtn");
+  const spinner = document.getElementById("spinner");
+  const btnText = document.getElementById("btnText");
+
+  btn.disabled          = true;
+  spinner.style.display = "block";
+  btnText.textContent   = "Analyzing…";
+
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const res = await fetch(`/evaluate?target_role=${encodeURIComponent(role)}`, {
+      method: "POST", body: fd
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Evaluation failed");
+    }
+
+    const result = await res.json();
+    showResult(result);
+
+  } catch (err) {
+    errorBox.style.display = "flex";
+    errorMsg.textContent   = err.message;
+  }
+
+  btn.disabled          = false;
+  spinner.style.display = "none";
+  btnText.textContent   = "Evaluate Resume";
+});
+
+/* ── showResult ─── BACKEND (unchanged) ─────────────────── */
+function showResult(result) {
+  document.getElementById("resultCard").style.display = "block";
+
+  document.getElementById("fitLevel").textContent     = result.fit_level;
+  document.getElementById("roleDisplay").textContent  = result.role;
+  document.getElementById("analysisText").textContent = result.analysis_summary;
+
+  /* confidence badge */
+  const badge = document.getElementById("confidenceBadge");
+  badge.className = "conf-badge";
+  document.getElementById("confidenceText").textContent = (result.confidence_level || "—") + " Confidence";
+  const cl = (result.confidence_level || "").toLowerCase();
+  if      (cl === "high")   badge.classList.add("high");
+  else if (cl === "medium") badge.classList.add("medium");
+  else if (cl === "low")    badge.classList.add("low");
+
+  /* recommendation */
+  if (result.recommendation) {
+    document.getElementById("recText").textContent      = result.recommendation;
+    document.getElementById("recRow").style.display     = "flex";
+  }
+
+  /* score ring + count-up */
+  const score = parseFloat(result.match_score_percentage) || 0;
+  const offset = 251 - (score / 100) * 251;
+  const ring   = document.getElementById("scoreRing");
+  const numEl  = document.getElementById("scoreNum");
+  setTimeout(() => { ring.style.strokeDashoffset = offset; }, 80);
+  let t0 = null;
+  (function countUp(ts) {
+    if (!t0) t0 = ts;
+    const p = Math.min((ts - t0) / 1000, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    numEl.textContent = Math.round(e * score) + "%";
+    if (p < 1) requestAnimationFrame(countUp);
+  })(performance.now());
+
+  /* skill bar */
+  const sp = parseFloat(result.skill_coverage_percentage) || 0;
+  document.getElementById("skillPct").textContent = sp + "%";
+  setTimeout(() => { document.getElementById("skillFill").style.width = sp + "%"; }, 150);
+
+  /* skills chips */
+  renderSkills("matchedSkills", result.matched_skills, "green");
+  renderSkills("missingSkills", result.missing_skills,  "gray");
+
+  setTimeout(() => document.getElementById("resultCard").scrollIntoView({ behavior: "smooth", block: "nearest" }), 120);
+}
+
+function renderSkills(id, data, color) {
+  const container = document.getElementById(id);
+  container.innerHTML = "";
+  if (!data) return;
+  Object.entries(data).forEach(([cat, arr]) => {
+    if (!arr || arr.length === 0) return;
+    const catEl = document.createElement("div");
+    catEl.className   = "skill-cat";
+    catEl.textContent = cat.replace(/_/g, " ");
+    container.appendChild(catEl);
+    const wrap = document.createElement("div");
+    wrap.className = "chips-wrap";
+    arr.forEach(skill => {
+      const chip = document.createElement("span");
+      chip.className   = "chip " + color;
+      chip.textContent = skill;
+      wrap.appendChild(chip);
+    });
+    container.appendChild(wrap);
+  });
+}
+</script>
+
+</body>
+</html>
